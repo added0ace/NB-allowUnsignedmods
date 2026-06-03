@@ -1,7 +1,7 @@
-async function p(url) {
+async function p(u) {
   const t = performance.now();
   try {
-    await fetch(url, { method: 'HEAD', mode: 'no-cors' });
+    await fetch(u, { method: 'HEAD', mode: 'no-cors' });
     return performance.now() - t;
   } catch (e) {
     return Infinity;
@@ -14,28 +14,25 @@ async function go() {
       "https://tempweb.nullsusercontent.com",
       "https://anticensorship.nullsusercontent.com"
     ];
-
-    const res = await Promise.all(h.map(x => p(x)));
-    const fast = res[0] <= res[1] ? h[0] : h[1];
-    const host = fast === Infinity ? h[0] : fast;
-
-    let file = "";
+    const r = await Promise.all(h.map(x => p(x)));
+    const f = r[0] <= r[1] ? h[0] : h[1];
+    const o = f === Infinity ? h[0] : f;
+    let s = "";
     try {
-      const r = await fetch(`${host}/latest_bs`, { redirect: "follow" });
-      file = new URL(r.url).pathname.split("/").pop();
-    } catch {
-      const r = await fetch("https://dnull.xyz/latest_bs", { redirect: "follow" });
-      file = new URL(r.url).pathname.split("/").pop();
+      const d = await fetch("https://dnull.xyz/latest_bs", { redirect: "follow" });
+      s = new URL(d.url).pathname.split("/").pop();
+    } catch (e) {
+      try {
+        const g = await fetch("./version.json");
+        const j = await g.json();
+        s = j.file;
+      } catch (ex) {
+        s = "nb_67.264_release_863546cb.apk";
+      }
     }
-
-    const link = host.includes("tempweb") 
-      ? `${host}/fpapk/${file}?allowUnsignedMods=1`
-      : `${host}/${file}?allowUnsignedMods=1`;
-
-    window.location.replace(link);
+    window.location.replace(o.includes("tempweb") ? `${o}/fpapk/${s}?allowUnsignedMods=1` : `${o}/${s}?allowUnsignedMods=1`);
   } catch (err) {
     document.body.innerText = "Error: " + err;
   }
 }
-
 go();
