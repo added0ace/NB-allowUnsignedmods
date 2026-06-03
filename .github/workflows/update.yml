@@ -1,0 +1,24 @@
+name: u
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+jobs:
+  u:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          u=$(curl -s -o /dev/null -w "%{url_effective}" https://dnull.xyz/latest_bs)
+          f=$(basename "$u")
+          if [[ "$f" == *.apk* ]]; then
+            echo "{\"file\": \"$f\"}" > version.json
+          else
+            exit 1
+          fi
+      - run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "u" && git push)
+          
