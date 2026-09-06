@@ -1,25 +1,45 @@
-name: u
+name: Update Version
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
+
+concurrency:
+  group: update-version
+  cancel-in-progress: true
+
 jobs:
-  u:
+  update:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
       - uses: actions/checkout@v4
-      - run: |
-          u=$(curl -s -L -o /dev/null -w "%{url_effective}" https://dnull.xyz/latest_bs || echo "")
-          f=$(basename "$u")
-          if [[ "$f" == *.apk* ]]; then
-            echo "{\"file\": \"$f\"}" > version.json
+
+      - name: Fetch and update version
+        run: |
+          raw_url=$(curl -s -L -o /dev/null -w "%{url_effective}" https://dnull.xyz/latest_bs || echo "")
+          filename=$(basename "$raw_url")
+          filename="${filename%%?*}"
+
+          if [[ "$filename" =~ \.apk$ ]]; then
+            echo "Found file: $filename"
+            echo "{\"file\": \"$filename\"}" > version.json
           else
-            echo "Keep old version"
+            echo "Invalid or missing file name: '$filename'. Keeping existing version."
           fi
-      - run: |
+
+      - name: Commit and push if changed
+        run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add version.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "u" && git push origin HEAD)
+          
+          if ! git diff --staged --quiet; then
+            new_file=$(jq -r '.file' version.json 2>/dev/null || echo "update")
+            git commit -m "chore(version): update to $new_file"
+            git push origin HEAD
+          else
+            echo "No changes to commit."
+          fi
